@@ -10,5 +10,9 @@ public class RpcConstants {
     /**
      * redis服务前缀默认过期时间
      */
-    public static final int REDIS_SERVICE_PREFIX_DEFAULT_EXPIRATION = 60 * 5 * 1000;
+    public static final int REDIS_SERVICE_PREFIX_DEFAULT_EXPIRATION =  60 * 30 * 10;
+    /**
+     * redis客户端前缀过期时间
+     */
+    public static final int REDIS_CLIENT_PREFIX_DEFAULT_EXPIRATION = 30;
 }

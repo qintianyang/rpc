@@ -40,7 +40,7 @@ public class ServerChannelInboundHandler extends SimpleChannelInboundHandler<Rpc
                 // 后置处理
                 ServerFilterChain.doAfterFilter(rpcInvocation);
                 // 测试异常
-                System.out.println(1/0);
+                // System.out.println(1/0);
             }
         }catch (Throwable e){
             rpcInvocation.setResult(null);

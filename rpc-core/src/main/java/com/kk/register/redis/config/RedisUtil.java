@@ -68,4 +68,15 @@ public class RedisUtil {
             log.error("关闭失败: {}", e.getMessage());
         }
     }
+
+    //bug：jedis是静态的 因此调用该静态变量的方法也得是静态的！！！！！
+    public static void evalLua(String luaScript, String key, Object value) {
+        try {
+            jedis.eval(luaScript, 1, key, JSONUtil.toJsonStr(value));
+        } catch (Throwable e) {
+            log.error("执行lua失败: {}", e.getMessage());
+        }
+    }
+
+    
 }
