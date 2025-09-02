@@ -2,11 +2,109 @@
     "configurations": [
         {
             "type": "java",
+            "name": "BuyAppServer",
+            "request": "launch",
+            "mainClass": "com.kk.BuyAppServer",
+            "projectName": "rpc-server-buy"
+        },
+        {
+            "type": "java",
+            "name": "ShopAppServer",
+            "request": "launch",
+            "mainClass": "com.kk.ShopAppServer",
+            "projectName": "rpc-server-shop"
+        },
+        {
+            "type": "java",
             "name": "Spring Boot-RpcService<rpc-service>",
             "request": "launch",
             "cwd": "${workspaceFolder}",
             "mainClass": "com.kk.rpc.service.RpcService",
             "projectName": "rpc-service",
+            "args": "",
+            "envFile": "${workspaceFolder}/.env"
+        },
+        {
+            "type": "java",
+            "name": "Spring Boot-Main<rpc-client>",
+            "request": "launch",
+            "cwd": "${workspaceFolder}",
+            "mainClass": "com.example.Main",
+            "projectName": "rpc-client",
+            "args": "",
+            "envFile": "${workspaceFolder}/.env"
+        },
+        {
+            "type": "java",
+            "name": "Spring Boot-ServerStart<rpc-server>",
+            "request": "launch",
+            "cwd": "${workspaceFolder}",
+            "mainClass": "com.kk.ServerStart",
+            "projectName": "rpc-server",
+            "args": "",
+            "envFile": "${workspaceFolder}/.env",
+            "vmArgs": " -Dcom.sun.management.jmxremote -Dcom.sun.management.jmxremote.port=50841 -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.ssl=false -Dspring.jmx.enabled=true -Djava.rmi.server.hostname=localhost -Dspring.application.admin.enabled=true -Dspring.boot.project.name=rpc-server"
+        },
+        {
+            "type": "java",
+            "name": "Spring Boot-Main<rpc-server>",
+            "request": "launch",
+            "cwd": "${workspaceFolder}",
+            "mainClass": "com.example.Main",
+            "projectName": "rpc-server",
+            "args": "",
+            "envFile": "${workspaceFolder}/.env"
+        },
+        {
+            "type": "java",
+            "name": "Spring Boot-Server<rpc-core>",
+            "request": "launch",
+            "cwd": "${workspaceFolder}",
+            "mainClass": "com.kk.server.Server",
+            "projectName": "rpc-core",
+            "args": "",
+            "envFile": "${workspaceFolder}/.env",
+            "vmArgs": " -Dcom.sun.management.jmxremote -Dcom.sun.management.jmxremote.port=52554 -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.ssl=false -Dspring.jmx.enabled=true -Djava.rmi.server.hostname=localhost -Dspring.application.admin.enabled=true -Dspring.boot.project.name=rpc-core"
+        },
+        {
+            "type": "java",
+            "name": "Spring Boot-Test<rpc-core>",
+            "request": "launch",
+            "cwd": "${workspaceFolder}",
+            "mainClass": "com.kk.Test",
+            "projectName": "rpc-core",
+            "args": "",
+            "envFile": "${workspaceFolder}/.env",
+            "vmArgs": " -Dcom.sun.management.jmxremote -Dcom.sun.management.jmxremote.port=51040 -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.ssl=false -Dspring.jmx.enabled=true -Djava.rmi.server.hostname=localhost -Dspring.application.admin.enabled=true -Dspring.boot.project.name=rpc-core"
+        },
+        {
+            "type": "java",
+            "name": "Spring Boot-ClientApp<rpc-client>",
+            "request": "launch",
+            "cwd": "${workspaceFolder}",
+            "mainClass": "com.kk.client.ClientApp",
+            "projectName": "rpc-client",
+            "args": "",
+            "envFile": "${workspaceFolder}/.env"
+        },
+        {
+            "type": "java",
+            "name": "Spring Boot-Main<rpc-server-buy>",
+            "request": "launch",
+            "cwd": "${workspaceFolder}",
+            "mainClass": "com.kk.Main",
+            "projectName": "rpc-server-buy",
+            "args": "",
+            "envFile": "${workspaceFolder}/.env",
+            "vmArgs": " -Dcom.sun.management.jmxremote -Dcom.sun.management.jmxremote.port=57628 -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.ssl=false -Dspring.jmx.enabled=true -Djava.rmi.server.hostname=localhost -Dspring.application.admin.enabled=true -Dspring.boot.project.name=rpc-server-buy"
+        },
+        {
+            "type": "java",
+            "name": "Spring Boot-Main<rpc-server-shop>",
+            "request": "launch",
+            "cwd": "${workspaceFolder}",
+            "mainClass": "com.kk.Main",
+            "projectName": "rpc-server-shop",
             "args": "",
             "envFile": "${workspaceFolder}/.env"
         }

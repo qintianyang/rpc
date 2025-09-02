@@ -10,11 +10,11 @@ public class MessageEncoder extends MessageToByteEncoder<RpcProtocol> {
     protected void encode(ChannelHandlerContext channelHandlerContext, RpcProtocol message, ByteBuf byteBuf) throws Exception {
         // 在这里实现您的编码逻辑
         // 例如，将 rpcProtocol 对象序列化为字节，并写入到 byteBuf 中
-        //
+        // 四个字节的魔数
         byteBuf.writeShort(message.getMagicNumber());
-        //
+        // 内容的长度
         byteBuf.writeInt(message.getContentLength());
-        //
+        // 正文
         byteBuf.writeBytes(message.getContent());
     }
 }

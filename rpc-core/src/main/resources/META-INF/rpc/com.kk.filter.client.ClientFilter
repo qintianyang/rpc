@@ -1,0 +1,2 @@
+clientLogRecordFilterImpl=com.kk.filter.client.impl.ClientLogRecordFilterImpl
+ClientLogAfterFilterImpl=com.kk.filter.client.impl.ClientLogAfterFilterImpl

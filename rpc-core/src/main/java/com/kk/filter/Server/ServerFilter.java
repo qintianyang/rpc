@@ -1,8 +1,9 @@
-package com.kk.filter.Server;
+package com.kk.filter.server;
 
 import com.kk.filter.Filter;
-import com.kk.util.RpcInvocation;
+import java.util.ArrayList;
+import java.util.List;
 
 public interface ServerFilter extends Filter {
-        void doFilter(RpcInvocation rpcInvocation);
+
 }

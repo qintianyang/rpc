@@ -6,7 +6,7 @@ import lombok.NoArgsConstructor;
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-public class RpcInvocation {
+public class RpcInvocation { 
     /**
      * 请求id
      */
@@ -24,8 +24,16 @@ public class RpcInvocation {
      * 参数
      */
     private  Object[] params;
+        /**
+     * 参数类型
+     */
+    private Class<?>[] paramTypes;
     /**
      * fanhuizhi 
      */
     private Object result;
+    /**
+     *  服务器异常
+     */
+    private Throwable e;
 }

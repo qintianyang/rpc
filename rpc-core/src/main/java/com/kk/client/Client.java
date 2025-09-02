@@ -1,54 +1,137 @@
 package com.kk.client;
 
-
-import com.kk.util.MessageDecoder;
-import com.kk.util.MessageEncoder;
-import com.kk.util.RpcInvocation;
-import com.kk.util.RpcProtocol;
-import com.kk.jackson.JacksonSerialize;
+import cn.hutool.core.util.ObjectUtil;
+import com.kk.config.ClientConfig;
+import com.kk.config.ConfigLoader;
+import com.kk.cache.ClientCache;
+import com.kk.filter.client.ClientFilter;
+import com.kk.filter.client.ClientFilterChain;
+import com.kk.util.*;
+import com.kk.serializer.jackson.JacksonSerializer;
+import com.kk.register.Register;
+import com.kk.router.Router;
+import com.kk.serializer.Serializer;
+import com.kk.spi.ExtraLoader;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.*;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.nio.NioSocketChannel;
 import lombok.extern.slf4j.Slf4j;
-import java.util.concurrent.CompletableFuture;
-// import com.kk.cache.CachePool;
-import static com.kk.cache.CachePool.resultCache;
 
 import java.net.InetSocketAddress;
+import java.util.Set;
+import java.util.LinkedHashMap;
+import java.util.concurrent.CompletableFuture;
 
+import static com.kk.cache.CachePool.extraLoader;
+import static com.kk.cache.CachePool.RESULT_CACHE;
 
+/**
+ * 用户端
+ */
 @Slf4j
 public class Client {
+
+    // 创建Netty客户端引导类，用于配置和启动客户端
     private static Bootstrap bootstrap = new Bootstrap();
     static {
+        initConfiguration();
         bootstrap.group(new NioEventLoopGroup());
         bootstrap.option(ChannelOption.SO_KEEPALIVE, true);
         bootstrap.channel(NioSocketChannel.class);
+        // 设置接收缓冲区自适应,最小2048,最大1024*10,初始1024*10,以防止服务端返回数据过大导致内存溢出
+        bootstrap.option(ChannelOption.RCVBUF_ALLOCATOR,
+                new AdaptiveRecvByteBufAllocator(2048, 1024 * 10, 1024 * 10));
         bootstrap.handler(new ChannelInitializer<NioSocketChannel>() {
             @Override
             protected void initChannel(NioSocketChannel channel) throws Exception {
                 channel.pipeline().addLast(new MessageEncoder());
-                channel.pipeline().addLast(new MessageDecoder());
+                channel.pipeline().addLast(new MessageDecoder(ClientCache.serializer));
                 channel.pipeline().addLast(new ClientChannelInboundHandler());
             }
         });
     }
-    
-    public static ChannelFuture getChannelFuture() throws InterruptedException{
-        return bootstrap.connect(new InetSocketAddress("127.0.0.1", 6636));
+
+    /**
+     * 初始化配置
+     */
+    public static void initConfiguration(){
+        try {
+            ClientConfig clientConfig = ConfigLoader.loadClientProperties();
+            extraLoader.loadExtension(Register.class);
+            extraLoader.loadExtension(Serializer.class);
+            extraLoader.loadExtension(Router.class);
+            LinkedHashMap<String, Class> registerClass = ExtraLoader.EXTENSION_LOADER_CLASS_CACHE.get(Register.class.getName());
+            LinkedHashMap<String, Class> serializerClass = ExtraLoader.EXTENSION_LOADER_CLASS_CACHE.get(Serializer.class.getName());
+            LinkedHashMap<String, Class> routerClass = ExtraLoader.EXTENSION_LOADER_CLASS_CACHE.get(Router.class.getName());
+            //过滤器
+            LinkedHashMap<String,Class> clientFilterClass = ExtraLoader.EXTENSION_LOADER_CLASS_CACHE.get(ClientFilter.class.getName());
+            if (ObjectUtil.isNotEmpty(clientFilterClass)) {
+                log.info("加载客户端过滤器");
+                Set<String> clientFilterNames = clientFilterClass.keySet();
+                for (String key : clientFilterNames) {
+                    if(!key.toLowerCase().contains("after")){
+                        ClientFilterChain.addBeforeFilter((ClientFilter) clientFilterClass.get(key).newInstance());
+                    }
+                    else{
+                        ClientFilterChain.addAfterFilter((ClientFilter) clientFilterClass.get(key).newInstance());
+                    }
+                }
+            }
+            // 注册中心
+            Class regCls = registerClass.get(clientConfig.getRegisterType());
+            if(ObjectUtil.isEmpty(regCls)){
+                throw new RuntimeException("register type not found");
+            }
+            System.out.println("---------------------------------");
+            System.out.println(clientConfig);
+            ClientCache.register = (Register) regCls.getConstructor(String.class, String.class)
+                    .newInstance(clientConfig.getRegisterAddress(),
+                            clientConfig.getRegisterPassword());
+            // 序列化
+            Class serCls = serializerClass.get(clientConfig.getClientSerialize());
+            if(ObjectUtil.isEmpty(serCls)){
+                throw new RuntimeException("serializer not found");
+            }
+            // 序列化
+            ClientCache.serializer = (Serializer) serCls.newInstance();
+            Class routerCls = routerClass.get(clientConfig.getRouterType());
+            if(ObjectUtil.isEmpty(routerCls)){
+                throw new RuntimeException("router not found");
+            }
+            ClientCache.router = (Router) routerCls.newInstance();
+            ClientCache.clientConfig = clientConfig;
+        }catch (Exception e){
+            log.error("client init error",e);
+        }
     }
 
-    public static CompletableFuture<Object> sendMessage(RpcInvocation rpcInvocation){
+    /**
+     * 建立连接获取通道
+     * @param router
+     * @return
+     * @throws InterruptedException
+     */
+    public static ChannelFuture getChannelFuture(ServiceWrapper router) throws InterruptedException {
+        return bootstrap.connect(new InetSocketAddress(router.getDomain(), router.getPort())).sync();
+    }
+
+    /**
+     * 发送消息
+     * @param router
+     * @param rpcInvocation
+     * @return
+     */
+    public static CompletableFuture<Object> sendMessage(ServiceWrapper router, RpcInvocation rpcInvocation){
         Channel channel = null;
         CompletableFuture<Object> future = new CompletableFuture<>();
         RpcProtocol rpcProtocol = new RpcProtocol();
         try {
-            byte[] body= new JacksonSerialize().serialize(rpcInvocation);
+            byte[] body= new JacksonSerializer().serialize(rpcInvocation);
             rpcProtocol.setContentLength(body.length);
             rpcProtocol.setContent(body);
-            channel = getChannelFuture().channel();
-            resultCache.put(rpcInvocation.getUuid(),future);//将请求根据id进行缓存用于后续接收服务端返回结果
+            channel = getChannelFuture(router).channel();
+            RESULT_CACHE.put(rpcInvocation.getUuid(),future);//将请求根据id进行缓存用于后续接收服务端返回结果
 
             if(!channel.isActive()){
                 bootstrap.group().shutdownGracefully();
@@ -56,114 +139,18 @@ public class Client {
             }
             channel.writeAndFlush(rpcProtocol).addListener((ChannelFutureListener)future1 -> {
                 if(future1.isSuccess()){
-                    log.info("客户端发送消息成功:{}", rpcInvocation);
+                    log.info("send message success:{}", rpcInvocation);
                 }else{
                     future1.channel().close();
                     future.completeExceptionally(future1.cause());
-                    log.error("客户端发送消息失败",future1.cause());
+                    log.error("send message error:{}",future1.cause());
                 }
             });
         }catch (Exception e){
-            resultCache.remove(rpcInvocation.getUuid());
-            log.error("客户端发送消息异常",e);
+            RESULT_CACHE.remove(rpcInvocation.getUuid());
+            log.error("send message error:{}",e);
             Thread.currentThread().interrupt();
         }
         return future;
     }
 }
-
-    // private static ChannelFuture connect(InetSocketAddress address) throws InterruptedException {
-    //     bootstrap.group(new NioEventLoopGroup());
-    //     bootstrap.option(ChannelOption.SO_KEEPALIVE, true);
-    //     bootstrap.channel(NioSocketChannel.class);
-    //     bootstrap.handler(new ChannelInitializer<NioSocketChannel>() {
-    //         @Override
-    //         protected void initChannel(NioSocketChannel channel) throws Exception {
-    //             channel.pipeline().addLast(new MessageEncoder());
-    //             channel.pipeline().addLast(new MessageDecoder());
-    //             channel.pipeline().addLast(new ClientChannelInboundHandler());
-    //         }
-    //     });
-    //     ChannelFuture channelFuture = bootstrap.connect(address).sync();
-    //     if (channelFuture.isSuccess()) {
-    //         log.debug("服务器连接成功: {} - {}", address.getHostName(), address.getPort());
-    //     } else {
-    //         log.debug("服务器连接失败: {} - {}", address.getHostName(), address.getPort());
-    //     }
-    //     return channelFuture;
-    // }
-
-    // public static void sendMessage(RpcProtocol rpcProtocol) throws InterruptedException {
-    //     ChannelFuture channelFuture = getChannelFuture();
-    //     channelFuture.channel().writeAndFlush(rpcProtocol);
-    // }
-
-    // public static void main(String[] args) {
-    //     Client client = new Client();
-    //     client.test();
-    // }
-
-    // public void test() {
-    //     RpcProtocol rpcProtocol = new RpcProtocol();
-    //     RpcInvocation rpcInvocation = new RpcInvocation();
-    //     rpcInvocation.setClassName("com.kk.server.HelloService");
-    //     rpcInvocation.setMethodName("hello");
-    //     try {
-    //         byte[] body = new JacksonSerialize().serialize(rpcInvocation);
-    //         rpcProtocol.setContentLength(body.length);
-    //         rpcProtocol.setContent(body);
-    //         sendMessage(rpcProtocol);
-    //     } catch (Exception e) {
-    //         e.printStackTrace();
-    //     }
-    // }
-
-    // public static void main(String[] args) throws Exception {
-        // 创建 Netty 客户端的启动类实例
-    //     Bootstrap bootstrap = new Bootstrap();
-    //     // 配置事件循环组（EventLoopGroup），用于处理所有事件（连接、读写等）
-    //     bootstrap.group(new NioEventLoopGroup());
-    //     // 指定通道类型为 NIO Socket 通道
-    //     bootstrap.channel(NioSocketChannel.class);
-    //     // 每个新连接初始化管道（Pipeline）
-    //     bootstrap.handler(new ChannelInitializer<NioSocketChannel>() {
-    //         @Override
-    //         protected void initChannel(NioSocketChannel nioSocketChannel) throws Exception {
-    //             // 添加解码器 二进制数据 反序列为消息对象
-    //             nioSocketChannel.pipeline().addLast(new MessageDecoder());
-    //             // 添加编码器 消息对象 序列为二进制数据
-    //             nioSocketChannel.pipeline().addLast(new MessageEncoder());
-    //             nioSocketChannel.pipeline().addLast(new ChannelInboundHandlerAdapter() {
-    //                 @Override
-    //                 public void channelRead(ChannelHandlerContext ctx,Object msg) throws Exception {
-    //                     log.info("客户端收到的消息是{}",msg);
-    //                     super.channelRead(ctx, msg);
-    //                 }
-    //             });
-    //         }
-    //     });
-
-    //     // 连接到服务器
-    //     Channel channel = bootstrap.connect("127.0.0.1", 6636).sync().channel();
-    //     //
-    //     log.info("消息准备发送给");
-
-    //     // 创建了一个RPC的目标对象，封装目标的类名和方法
-    //     RpcInvocation rpcInvocation = new RpcInvocation();
-    //     rpcInvocation.setClassName("com.kk.service.impl.HelloServiceImpl"); // 设置目标类名
-    //     rpcInvocation.setMethodName("sayHello"); // 设置目标方法名
-        
-    //     // 创建一个协议对象，用于封装序列化后的数据
-    //     RpcProtocol rpcProtocol = new RpcProtocol();
-
-    //     // 序列化转化为字节数组
-    //     byte[] serialize = new JacksonSerialize().serialize(rpcInvocation);
-        
-    //     // 协议对象设置内容长度和内容
-    //     rpcProtocol.setContentLength(serialize.length);
-    //     rpcProtocol.setContent(serialize);
-
-    //     // 发送协议对象
-    //     channel.writeAndFlush(rpcProtocol);
-    // }
-

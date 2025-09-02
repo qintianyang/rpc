@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<configuration debug="false">
+<configuration debug="true">
     <!--控制台日志， 控制台输出 -->
     <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
         <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
@@ -7,9 +7,16 @@
             <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{50} - %msg%n</pattern>
         </encoder>
     </appender>
+
     <!--文件日志， 按照每天生成日志文件 -->
     <!-- show parameters for hibernate sql 专为 Hibernate 定制 -->
     <logger name="com.kk" level="DEBUG">
+        <appender-ref ref="STDOUT" />
+    </logger>
+    <logger name="org.springframework" level="DEBUG">
+        <appender-ref ref="STDOUT" />
+    </logger>
+    <logger name="org.springframework" level="ERROR">
         <appender-ref ref="STDOUT" />
     </logger>
 </configuration>

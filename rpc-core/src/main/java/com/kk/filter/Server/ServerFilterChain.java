@@ -1,4 +1,4 @@
-package com.kk.filter.Server;
+package com.kk.filter.server;
 
 import com.kk.util.RpcInvocation;
 
@@ -6,15 +6,24 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class ServerFilterChain {
-    public static List<ServerFilter> filters=new ArrayList<>();
-    public static void addServerFilter(ServerFilter serverFilter)
-    {
-        filters.add(serverFilter);
+
+    private static List<ServerFilter> serverBeforeFilters = new ArrayList<>();
+    private static List<ServerFilter> serverAfterFilters = new ArrayList<>();
+
+    public static void addBeforeFilter(ServerFilter serverFilter) {
+        serverBeforeFilters.add(serverFilter);
     }
-    public static void doFilter(RpcInvocation rpcInvocation)
-    {
-        for (ServerFilter filter : filters) {
-            filter.doFilter(rpcInvocation);
+    public static void addAfterFilter(ServerFilter serverFilter) {
+        serverAfterFilters.add(serverFilter);
+    }
+    public static void doBeforeFilter(RpcInvocation invocation) {
+        for (ServerFilter serverFilter : serverBeforeFilters) {
+            serverFilter.doFilter(invocation);
+        }
+    }
+    public static void doAfterFilter(RpcInvocation invocation) {
+        for (ServerFilter serverFilter : serverAfterFilters) {
+            serverFilter.doFilter(invocation);
         }
     }
 }

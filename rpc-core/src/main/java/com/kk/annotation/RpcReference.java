@@ -1,5 +1,6 @@
 package com.kk.annotation;
 
+import com.kk.router.random.RandomRouter;
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
@@ -17,13 +18,13 @@ public @interface RpcReference {
      */
     String version() default "";
     /**
-     * 负载均衡算法
-     * @return
-     */
-    Class<?>router() default Object.class;
-    /**
      * 超时时间
      * @return
      */
     long timeout() default 5000;
+    /**
+     * 服务名称
+     * @return
+     */
+    String serviceName();
 }

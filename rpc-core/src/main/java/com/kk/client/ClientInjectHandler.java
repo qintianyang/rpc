@@ -1,15 +1,17 @@
 package com.kk.client;
 
 import com.kk.annotation.RpcReference;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.config.BeanPostProcessor;
 import org.springframework.context.annotation.Configuration;
-import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.annotation.Import;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Proxy;
 
 @Configuration
+@Import(Client.class)
 @Slf4j
 public class ClientInjectHandler implements BeanPostProcessor {
     /**
@@ -28,14 +30,14 @@ public class ClientInjectHandler implements BeanPostProcessor {
         for (Field field : fields) {
             if (field.isAnnotationPresent(RpcReference.class)) {
                 try {
+                    RpcReference annotation = field.getAnnotation(RpcReference.class);
                     Class<?> type = field.getType();
                     field.setAccessible(true);
                     System.out.println(field.getType());
                     field.set(bean, Proxy.newProxyInstance(
                             Thread.currentThread().getContextClassLoader(),
-                            // new Class[]{field.getType()},
                             new Class[]{type},
-                            new ClientProxy()
+                            new ClientProxy(annotation.serviceName())
                     ));
                     field.setAccessible(false);
                 } catch (IllegalAccessException e) {

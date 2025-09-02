@@ -1,9 +1,11 @@
 package com.kk.util;
 
+import java.io.Serializable;
+
 import lombok.Data;
 
 @Data
-public class ServiceWrapper {
+public class ServiceWrapper implements Serializable{
     private String domain;
     private int port;
 

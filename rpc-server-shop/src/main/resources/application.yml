@@ -1,0 +1,5 @@
+server:
+  port: 5644
+spring:
+  main:
+    banner-mode: off

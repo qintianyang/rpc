@@ -1,0 +1,3 @@
+random=com.kk.router.random.RandomRouter
+round=com.kk.router.round.RoundRouter
+consistHash=com.kk.router.hash.ConsistentHashRouter

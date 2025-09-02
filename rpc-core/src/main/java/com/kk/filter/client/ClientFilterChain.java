@@ -6,17 +6,24 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class ClientFilterChain {
-    private  static List<ClientFilter> clientFilters=new ArrayList<>();
+    
+    private  static List<ClientFilter> clientAfterFilters=new ArrayList<>();
+    private  static List<ClientFilter> clientBeforeFilters=new ArrayList<>();
 
-    public static void addClientFilter(ClientFilter clientFilter)
-    {
-        clientFilters.add(clientFilter);
+    public static void addBeforeFilter(ClientFilter clientFilter){
+        clientBeforeFilters.add(clientFilter);
     }
-
-    public static void doFilter(RpcInvocation rpcInvocation)
-    {
-        for (ClientFilter clientFilter : clientFilters) {
-            clientFilter.doFilter(rpcInvocation);
+    public static void addAfterFilter(ClientFilter clientFilter){
+        clientAfterFilters.add(clientFilter);
+    }
+    public static void doBeforeFilter(RpcInvocation invocation){
+        for (ClientFilter clientFilter : clientBeforeFilters) {
+            clientFilter.doFilter(invocation);
+        }
+    }
+    public static void doAfterFilter(RpcInvocation invocation){
+        for (ClientFilter clientFilter : clientAfterFilters) {
+            clientFilter.doFilter(invocation);
         }
     }
 }
